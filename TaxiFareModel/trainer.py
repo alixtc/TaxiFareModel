@@ -3,10 +3,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer
+from sklearn.model_selection import train_test_split
 
-def compute_rmse(y_pred, y_true):
-    return np.sqrt(((y_pred - y_true)**2).mean())
+from TaxiFareModel.data import get_data, clean_data, AWS_BUCKET_PATH
+from TaxiFareModel.encoders import TimeFeaturesEncoder, DistanceTransformer
+from TaxiFareModel.utils import compute_rmse
 
 class Trainer():
     def __init__(self, X, y):
@@ -59,11 +60,25 @@ class Trainer():
         print(rmse)
         return rmse
 
-if __name__ == "__main__":
-    # get data
-    # clean data
+if __name__ == "__main__":    
+    # store the data in a DataFrame
+    df = get_data(nrows=1000)
+    df = clean_data(df, test=False)
+
     # set X and y
+    y = df["fare_amount"]
+    X = df.drop("fare_amount", axis=1)
+
     # hold out
-    # train
-    # evaluate
-    print('TODO')
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.15)
+
+    # build pipeline
+    my_trainer = Trainer(X_train, y_train)
+
+    # train the pipeline
+    my_trainer.set_pipeline()
+    my_trainer.run()
+
+    # evaluate the pipeline
+    rmse = my_trainer.evaluate(X_val, y_val)
+    print(rmse)
