@@ -13,6 +13,8 @@ from memoized_property import memoized_property
 import mlflow
 from  mlflow.tracking import MlflowClient
 
+import joblib
+
 
 class Trainer():
     def __init__(self, X, y):
@@ -26,8 +28,12 @@ class Trainer():
         self.MLFLOW_URI = "https://mlflow.lewagon.co/"
         self.experiment_name = '[FR][Marseille][alixtc] TaxiFareModel - 1.0'
 
-    def set_pipeline(self):
+    def set_pipeline(self, pipeline=None):
         """defines the pipeline as a class attribute"""
+        # Possibility to input custom pipeline or go to default pipeline
+        if pipeline:
+            self.pipeline = pipeline
+            return self
         
         # Pipelines to process Distance and Time columns
         dist_pipe = Pipeline([
@@ -66,6 +72,7 @@ class Trainer():
         rmse = compute_rmse(y_pred, y_test)
         print(rmse)
         
+        # Logging of model performances
         self.mlflow_log_metric("rmse", rmse)
         self.mlflow_log_param("model", self.pipeline[-1])
         return rmse
@@ -93,6 +100,10 @@ class Trainer():
     def mlflow_log_metric(self, key, value):
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
+    # ------------- Export --------------
+    def save_model(self,name='model'):
+        """ Save the trained model into a model.joblib file """
+        joblib.dump(self.pipeline, f'{name}.joblib')
 
 
 if __name__ == "__main__":    
@@ -116,4 +127,6 @@ if __name__ == "__main__":
 
     # evaluate the pipeline
     rmse = my_trainer.evaluate(X_val, y_val)
+    my_trainer.save_model()
+    
     print(rmse)
